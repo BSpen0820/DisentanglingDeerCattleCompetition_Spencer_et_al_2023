@@ -5,6 +5,8 @@
 #Load Libraries
 library(foreign)
 library(tidyverse)
+library(lubridate)
+library(sf)
 
 ########################GPS Data Preparation########################################
 
@@ -38,3 +40,37 @@ for (x in 1:length(RawGPS)) {
 }
 
 rm(RawGPS)  
+
+#filter the GPS data to the time period of interest: a month before cattle were stocked to the day before the collars were collected
+AllGPS <- AllGPS %>% filter(GMT_DATE >= (as.Date("2020-11-05", "%Y-%m-%d") - days(30))) %>%
+  filter(GMT_DATE <= (as.Date("2020-11-16", "%Y-%m-%d") + days(30)))
+
+#Create a new column in which we can merge the date and time together for POSIX time for further analysis and use
+AllGPS$POSTime <- paste(AllGPS$GMT_DATE, " ", AllGPS$GMT_TIME)
+AllGPS$POSTime <- as.POSIXct(AllGPS$POSTime, tz = "America/Chicago", format = "%Y-%m-%d %H:%M:%OS")
+
+write.csv(AllGPS, "./Output/GPS Data Prep/GPSData.csv", row.names = F)
+
+#######################GPS Data Bounding Box #################################
+
+AllGPS <- read.csv('./Output/GPS Data Prep/GPSData.csv', header = T)
+AllGPS <- AllGPS[!is.na(AllGPS$LONGITUDE), ]
+
+AllGPS<- st_as_sf(AllGPS, coords = c('LONGITUDE', 'LATITUDE'), crs = 4326)
+AllGPS<- st_transform(AllGPS, crs = 26914)
+plot(st_geometry(AllGPS))
+
+BBox <- st_bbox(AllGPS)
+BBox[1] <- BBox[1] - 1000
+BBox[2] <- BBox[2] - 1000
+BBox[3] <- BBox[3] + 1000
+BBox[4] <- BBox[4] + 1000
+
+BBox <- st_as_sfc(BBox)
+
+plot(BBox, add = T)
+
+write_sf(BBox, "./Output/BoundingBox/deerbbox.shp")
+
+#######################Bounding out and preping Raster Stack#################
+
