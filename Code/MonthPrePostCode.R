@@ -149,5 +149,3 @@ plot(BBox, add = T)
 
 write_sf(BBox, "./Output/BoundingBox/deerbbox.shp", overwrite = T)
 
-#######################Bounding out and preping Raster Stack#################
-
