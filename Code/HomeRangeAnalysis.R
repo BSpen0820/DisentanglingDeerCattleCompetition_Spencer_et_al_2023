@@ -9,6 +9,8 @@ library(raster)
 library(sf)
 library(sp)
 library(move)
+library(lme4)
+library(lmerTest)
 
 ##########Home Ranges before and After###########
 
@@ -66,4 +68,22 @@ for (x in 1:16) {
   }
 }
 
-write.csv(HR.table, "./FinalAnalysisOutput/HRData.csv", row.names = F)
+write.csv(HR.table, "./FinalAnalysisOutput/HRData.csv", row.names = F) #Save
+
+#######################Analysis of Home Ranges###############################
+
+HR.table <- read.csv("./FinalAnalysisOutput/HRData.csv", header = T)
+HR.table$Status <- factor(HR.table$Status)
+
+HR <- HR.table %>% filter(Type == "HR")
+
+HR.model <- lmer(Area ~ Status + (1|ID), data = HR)
+Out <- summary(HR.model)
+
+CA <- HR.table %>% filter(Type == "Core")
+
+CA.model <- lmer(Area ~ Status + (1|ID), data = CA)
+Out2 <- summary(CA.model)
+
+save(list = c("Out", "Out2"), file = "./FinalAnalysisOutput/HRModelSummary.RData")
+
