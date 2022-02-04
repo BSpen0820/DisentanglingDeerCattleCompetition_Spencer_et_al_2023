@@ -12,8 +12,10 @@ library(lmerTest)
 
 #################Data Prep#######################
 
+StRate <- raster("./FinalAnalysisData/StockingRaster.tif")
+
 #read in Deer GPS data
-Deer <- tibble(read.csv("./FinalAnalysisData/DeerGPSData.csv", header = T))
+Deer <- tibble(read.csv("./Output/GPS Data Prep/AllGPSAndStockingDens.csv", header = T))
 
 #Assign the POSTime column as the class POSIXct
 Deer$POSTime <- as.POSIXct(Deer$POSTime, tz = "America/Chicago", format = "%Y-%m-%d %H:%M:%OS")
@@ -33,7 +35,7 @@ Case <- unique(Deer$StStatus) #so it can cycle through before and after stocking
 ind.lst <- list() #empty individual list
 all.lst <- list() #empty all list
 
-for(i in 1:16) {
+for(i in 1:19) {
   #i <- 1 #debugger
   
   ind <- Deer %>% filter(ID == Ind[i]) #filter to one individual
@@ -50,13 +52,15 @@ for(i in 1:16) {
     ind.vel <- speed(ind.cs.tr, append_na = F)
     
     #create steps so you can pull the turn angle
-    ind.steps <- steps(ind.cs.tr)
-    ind.ta <- ind.steps$ta_
+    ind.steps <- steps_by_burst(ind.cs.tr) %>% extract_covariates(StRate)
+    ind.steps <- cbind(ind.steps, vel = ind.vel[1:nrow(ind.steps)])
     
     #create a df to combine all the movement information and add the individual id and stocking case
-    df <- data.frame(ind.vel, ind.ta)
-    df$ID <- Ind[i]
-    df$StCase <- Case[x]
+    ind.steps$ID <- Ind[i]
+    ind.steps$StCase <- Case[x]
+    
+    df <- ind.steps[, c(14, 15, 12, 8, 13)]
+    df$StockingRaster <- ifelse(df$StCase == "before", 0, df$StockingRaster)
     
     #Save to individual movement data list
     ind.lst[[x]] <- df
@@ -80,7 +84,7 @@ for(i in 1:16) {
 all.df <- data.frame(matrix(nrow = 0, ncol = ncol(df)))
 names(all.df) <- names(df)
 
-for (k in 1:16){
+for (k in 1:length(Ind)){
   all.df <- rbind(all.df, all.lst[[k]])
   
 }    

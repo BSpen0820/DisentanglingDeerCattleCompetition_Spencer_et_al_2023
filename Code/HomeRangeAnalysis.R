@@ -12,15 +12,29 @@ library(move)
 library(lme4)
 library(lmerTest)
 
-##########Home Ranges before and After###########
+###############Raster extent expansion##############
 
 Deer <- read.csv("./Output/GPS Data Prep/AllGPSAndStockingDens.csv", header = T) #read in deer GPS data
+rast <- raster("./FinalAnalysisData/PercentWoodyCover.tif")
+
+Deer <- filter(Deer, !is.na(LONGITUDE))
+Deer <- st_as_sf(Deer, coords = c("LONGITUDE", "LATITUDE"), crs = 4326, remove = F)
+Deer <- st_transform(Deer, crs = crs(rast))
+
+Deer.ext <- extent(Deer)
+
+rast <- extend(rast, Deer.ext, value = 0)
+plot(rast)
+
+rast <- projectRaster(rast, crs = CRS('+proj=aeqd'))
+
+##########Home Ranges before and After###########
+
+Deer <- st_drop_geometry(Deer)
+
 Deer$POSTime <- as.POSIXct(Deer$POSTime)
 Ind.ID <- unique(Deer$ID)
 Case <- unique(Deer$StStatus)
-
-rast <- raster("./FinalAnalysisData/PercentWoodyCover.tif")
-rast <- projectRaster(rast, crs = CRS('+proj=aeqd'))
 
 #Create an empty dataframe to store homerange data
 HR.table <- data.frame(matrix(nrow = 0, ncol = 5))
@@ -28,12 +42,12 @@ names(HR.table) <- c("ID", "Status", "Type", "Area", "StRate")
 
 #Dynamic Browning Bridge Loop
 for (x in 1:19) {
-  x <- 12
+  #x <- 12
   
   ind.df <- Deer %>% filter(ID == Ind.ID[x]) #filter to an individual
  
   for(i in 1:2){
-    i <- 1
+    #i <- 1
     
   
     ind.df.st <- ind.df %>% filter(StStatus == Case[i])
@@ -82,7 +96,7 @@ HR.table$Status <- factor(HR.table$Status)
 
 HR <- HR.table %>% filter(Type == "HR")
 
-HR.model <- lmer(Area ~ Status + (1|ID), data = HR)
+HR.model <- lmer(Area ~ StRate + (1|ID), data = HR)
 HRModel <- summary(HR.model)
 
 CA <- HR.table %>% filter(Type == "Core")
