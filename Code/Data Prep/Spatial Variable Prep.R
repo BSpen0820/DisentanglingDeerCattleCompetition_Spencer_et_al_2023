@@ -97,3 +97,34 @@ plot(road.dist) #Plot distance raster
 plot(st_geometry(road), add = T) #add road shapefile to plot
 
 writeRaster(road.dist, "./FinalAnalysisData/Dist2Road.tif", overwrite = T) #save
+
+#########################Pasture Raster########################
+
+Colo.Area <- read_sf("./Output/Coloraditas Pastures/GrazingUnit.shp") #Read in Coloraditas Area ShapeFile
+
+plot(st_geometry(Colo.Area)) #plot it
+
+Colo.Area$hect <- as.numeric(st_area(Colo.Area)/10000) #Calculate the area of the pastures in hectares
+
+Stock.Data <- read.csv("./Data/StockingDensityTotal.csv", header = T) #read in stocking data 
+
+Stock.Data <- separate(Stock.Data, Destination, into = c("GrazingUnit", "Pasture"), sep = ": ") #split the grazing unit and pastures into separate columns
+
+#Short for loop to calculate the stocking density in auy/ha
+for(i in 1:length(Stock.Data$Pasture)) {
+  Stock.Data$Stock.Dens[i] <- Stock.Data$Total[i]/Colo.Area$hect[Colo.Area$Name == Stock.Data$Pasture[i]]
+}
+
+Colo.Area <- merge(Colo.Area, Stock.Data, by.x = "Name", by.y = "Pasture")
+
+plot(Colo.Area[25])
+
+empty.rast <- raster::setValues(raster("./FinalAnalysisData/PercentWoodyCover.tif"), values = NA) #create an epmty raster
+
+Past.Rast <- rasterize(Colo.Area, empty.rast, "Stock.Dens")
+Past.Rast[is.na(Past.Rast[])] <- 0
+
+plot(Past.Rast)
+plot(st_geometry(Colo.Area), add = T)
+
+writeRaster(Past.Rast, "./FinalAnalysisData/StockingRaster.tif")

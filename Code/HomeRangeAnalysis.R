@@ -14,7 +14,7 @@ library(lmerTest)
 
 ##########Home Ranges before and After###########
 
-Deer <- read.csv("./FinalAnalysisData/DeerGPSData.csv", header = T) #read in deer GPS data
+Deer <- read.csv("./Output/GPS Data Prep/AllGPSAndStockingDens.csv", header = T) #read in deer GPS data
 Deer$POSTime <- as.POSIXct(Deer$POSTime)
 Ind.ID <- unique(Deer$ID)
 Case <- unique(Deer$StStatus)
@@ -23,15 +23,18 @@ rast <- raster("./FinalAnalysisData/PercentWoodyCover.tif")
 rast <- projectRaster(rast, crs = CRS('+proj=aeqd'))
 
 #Create an empty dataframe to store homerange data
-HR.table <- data.frame(matrix(nrow = 0, ncol = 4))
-names(HR.table) <- c("ID", "Status", "Type", "Area")
+HR.table <- data.frame(matrix(nrow = 0, ncol = 5))
+names(HR.table) <- c("ID", "Status", "Type", "Area", "StRate")
 
 #Dynamic Browning Bridge Loop
-for (x in 1:16) {
+for (x in 1:19) {
+  x <- 12
   
   ind.df <- Deer %>% filter(ID == Ind.ID[x]) #filter to an individual
  
   for(i in 1:2){
+    i <- 1
+    
   
     ind.df.st <- ind.df %>% filter(StStatus == Case[i])
     
@@ -62,7 +65,9 @@ for (x in 1:16) {
     
     IsoPoly$Status <- unique(ind.df.st$StStatus) #Copy the stocking status
     
-    Info <- st_drop_geometry(IsoPoly[,c(4,6,5,3)]) #Copy into format to add to empty HR table
+    IsoPoly$StRate <- mean(ind.df.st$Stock.Dens)
+    
+    Info <- st_drop_geometry(IsoPoly[,c(4,6,5,3,7)]) #Copy into format to add to empty HR table
     
     HR.table <- rbind(HR.table, Info) #Add the Id, Date, Isopleth level, and Area to HR table
   }
@@ -78,12 +83,12 @@ HR.table$Status <- factor(HR.table$Status)
 HR <- HR.table %>% filter(Type == "HR")
 
 HR.model <- lmer(Area ~ Status + (1|ID), data = HR)
-Out <- summary(HR.model)
+HRModel <- summary(HR.model)
 
 CA <- HR.table %>% filter(Type == "Core")
 
 CA.model <- lmer(Area ~ Status + (1|ID), data = CA)
-Out2 <- summary(CA.model)
+CAModel <- summary(CA.model)
 
 save(list = c("Out", "Out2"), file = "./FinalAnalysisOutput/HRModelSummary.RData")
 

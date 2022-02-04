@@ -19,8 +19,9 @@ PerWoody <- raster("./FinalAnalysisData/PercentWoodyCover.tif")
 PerSand <- raster("./FinalAnalysisData/PercentSand.tif")
 DistWater <- raster("./FinalAnalysisData/Dist2Water.tif")
 DistRoad <- raster("./FinalAnalysisData/Dist2Road.tif")
+StockRast <- raster("./FinalAnalysisData/StockingRaster.tif")
 
-landstack <- raster::stack(PerWoody, PerSand, DistWater, DistRoad) #create a raster stack of co-variates
+landstack <- raster::stack(PerWoody, PerSand, DistWater, DistRoad, StockRast) #create a raster stack of co-variates
 
 rm(list = c("PerWoody", "PerSand", "DistWater", "DistRoad")) #remove memory consuming rasters
 
@@ -97,6 +98,22 @@ rm(list = setdiff(ls(), "ssf.all.df")) #remove extra list and dataframes
 #save the dataframe that contains all ssf data for all individuals
 write.csv(ssf.all.df, "./FinalAnalysisOutput/ssfdata.csv", row.names = F) 
 
+##############################Extract Stocking Data################
+
+ssf.all.df <- read.csv("./FinalAnalysisOutput/ssfdata.csv", header = T) #read in ssf data
+
+ssf.all <- st_as_sf(ssf.all.df, coords = c("x2_", "y2_"), crs = 26914, remove = F)
+
+ssf.all$StockingRate <- extract(StockRast, ssf.all)
+
+ssf.all$StockRate <- ifelse(ssf.all$Stocked == "before", 0, ssf.all$StockingRate)
+
+ssf.all.df <- st_drop_geometry(ssf.all)
+
+ssf.all.df <- ssf.all.df[, c(1:21, 23)]
+
+write.csv(ssf.all.df, "./FinalAnalysisOutput/ssfdata.csv", row.names = F)
+
 #############################SSF Analysis##################
 
 load("./FinalAnalysisOutput/SSFModels.RData") #will load in ssf model outputs below
@@ -104,37 +121,44 @@ load("./FinalAnalysisOutput/SSFModels.RData") #will load in ssf model outputs be
 ssf.all.df <- read.csv("./FinalAnalysisOutput/ssfdata.csv", header = T) #read in ssf data
 
 #change case for before and after stocking event to 0 or 1
-ssf.all.df$stcase <- ifelse(ssf.all.df$Stocked == "before", 0, 1) 
+ssf.all.df$stcase <- ifelse(ssf.all.df$Stocked == "before", 0, 1)
+
+ssf.all.df$Wood <- scale(ssf.all.df$PercentWoodyCover)
+ssf.all.df$Sand <- scale(ssf.all.df$PercentSand)
+ssf.all.df$Water <- scale(ssf.all.df$Dist2Water)
+ssf.all.df$Road <- scale(ssf.all.df$Dist2Road)
+ssf.all.df$StRate <- scale(ssf.all.df$StockRate)
 
 #Modeled Analysis after Heather Abernathy Hurricane Paper
-models <- list() #create an empty list to save all the models to
+SSFModels <- list() #create an empty list to save all the models to
 
 #Global Model
-models[[1]] <- survival::clogit(data = ssf.all.df, formula = use ~ PercentWoodyCover + 
-                                    PercentSand + Dist2Water + Dist2Road + stcase +
-                                    stcase*(PercentWoodyCover + 
-                                    PercentSand + Dist2Water + Dist2Road) + cluster(id) + 
+SSFModels[[1]] <- survival::clogit(data = ssf.all.df, formula = use ~ Wood + 
+                                   Sand + Water + Road +
+                                    StRate*(Wood + 
+                                    Sand + Water + Road) + cluster(id) + 
                                     strata(step_id), method = 'approximate')
 
 #Null Model
-models[[2]] <- survival::clogit(data = ssf.all.df, formula = use ~ 1 + cluster(id) + 
+SSFModels[[2]] <- survival::clogit(data = ssf.all.df, formula = use ~ 1 + cluster(id) + 
                                   strata(step_id), method = 'approximate')
 
 #Model without the interaction
-models[[3]] <- survival::clogit(data = ssf.all.df, formula = use ~ PercentWoodyCover + 
+SSFModels[[3]] <- survival::clogit(data = ssf.all.df, formula = use ~ PercentWoodyCover + 
                                   PercentSand + Dist2Water + Dist2Road + 
-                                  stcase + cluster(id) + 
+                                  StRate + cluster(id) + 
                                   strata(step_id), method = 'approximate')
 
 #Model names
 model.names <- c("global", "null", "minus-int")
 
 #create data frame to display AIC scores
-out <- aictab(cand.set = models, modnames = model.names, second.ord = F)
+AICSSF <- aictab(cand.set = SSFModels, modnames = model.names, second.ord = F)
 
 #Summary of best fitting model
-summary(models[[1]])
+summary(SSFModels[[1]])
 
 #Save so you don't have to run code above
-save(list = c("out", "models"), file = "./FinalAnalysisOutput/SSFModels.RData")
+save(list = c("AICSSF", "SSFModels"), file = "./FinalAnalysisOutput/SSFModels.RData")
 
+range(ssf.all.df$Wood)
