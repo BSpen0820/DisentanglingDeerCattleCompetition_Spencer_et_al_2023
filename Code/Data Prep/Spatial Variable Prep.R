@@ -15,11 +15,22 @@ Woody.Rast <- raster("./Data/ColoClassedImage.tif") #Read in Woody Cover Raster 
 Woody.Rast #Checking the resoltion and crs
 plot(Woody.Rast) #Plot
 
-Deer.bbox <- st_read("./Output/BoundingBox/deerbbox.shp") #Read in Deer BBox with the 1km buffer
-Deer.bbox #Checking the crs to make sure it matches the woody raster layer
-plot(st_geometry(Deer.bbox), add = T) #Plot on top of woody cover raster
+Deer <- read.csv("./FinalAnalysisOutput/ssfdata.csv", header = T) #Read in Deer BBox with the 1km buffer
+Deer <- st_as_sf(Deer, coords = c("x2_", "y2_"), crs = 26914, remove = F)
 
-Woody.crop <- crop(Woody.Rast, Deer.bbox) #Crop Woody Raster to remove unneeded data and to make processing time quicker
+Deer.ext <- extent(Deer)
+Deer.ext[1] <- Deer.ext[1] - 1000
+Deer.ext[2] <- Deer.ext[2] + 1000
+Deer.ext[3] <- Deer.ext[3] - 1000
+Deer.ext[4] <- Deer.ext[4] + 1000
+plot(Deer.ext, add = T)
+
+
+Woody.crop <- crop(Woody.Rast, Deer.ext) #Crop Woody Raster to remove unneeded data and to make processing time quicker
+
+DeerBBox <- as(Deer.ext, "SpatialPolygons")
+crs(DeerBBox) <- "+proj=utm +zone=14N +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+shapefile(DeerBBox, "./Output/BoundingBox/deerbbox.shp", overwrite = T)
 
 plot(Woody.crop)  #Plot
 
@@ -28,9 +39,10 @@ Woody.PCover <- raster::aggregate(Woody.crop, fact = 10, fun = mean) #Change the
 plot(Woody.PCover) #Plot
 Woody.PCover #Check Resolution and CRS again
 
-writeRaster(Woody.PCover, "./FinalAnalysisData/PercentWoodyCover.tif")
+writeRaster(Woody.PCover, "./FinalAnalysisData/PercentWoodyCover.tif", overwrite = T)
 
-rm(Deer.bbox)
+rm(Deer.ext)
+rm(Deer)
 rm(Woody.crop)
 rm(Woody.Rast)
 
@@ -44,7 +56,7 @@ plot(st_geometry(Soil)) #plot
 Soil <- st_transform(Soil, crs = crs(Woody.PCover)) #transform it to that of the woody raster
 Soil #check crs
 
-PrSand <- read.csv("./Data/Soil Data/thematic/rating7706522.csv", header = T) #Read in Percent Sand table for the soil type
+PrSand <- read.csv("./Data/Soil Data/thematic/rating7747498.csv", header = T) #Read in Percent Sand table for the soil type
 
 PrSand <- PrSand[,c("MapUnitKey", "RatingNum")] #Remove all unnecessary information
 
@@ -127,4 +139,4 @@ Past.Rast[is.na(Past.Rast[])] <- 0
 plot(Past.Rast)
 plot(st_geometry(Colo.Area), add = T)
 
-writeRaster(Past.Rast, "./FinalAnalysisData/StockingRaster.tif")
+writeRaster(Past.Rast, "./FinalAnalysisData/StockingRaster.tif", overwrite = T)

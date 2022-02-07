@@ -100,15 +100,15 @@ all.df <- read.csv("./FinalAnalysisOutput/movementdata.csv", header = T) #load i
 all.df$StCase <- factor(all.df$StCase) #factor the stocking case
 
 #log transform the velocity data so that is has a "normal" distribution
-all.df$logVel <- log(all.df$ind.vel) 
+all.df$logVel <- log(all.df$vel) 
 
 all.df <- all.df[!is.infinite(all.df$logVel),] #remove any infinite values
 
-vel.model <- lmer(logVel ~ StCase + (1|ID), data = all.df) #Velocity Model
-summary(vel.model)
+vel.model <- lmer(logVel ~ StockingRaster + StCase + (1|ID), data = all.df) #Velocity Model
+vel.model.summ <- summary(vel.model)
 
-ta.model <- lmer(ind.ta ~ StCase + (1|ID), data = all.df) #Turn Angle Model
+ta.model <- lmer(ta_ ~ StockingRaster + StCase + (1|ID), data = all.df) #Turn Angle Model
 summary(ta.model)
 
 #save models so they don't need to be re-run
-save(list = c("vel.model", "ta.model"), file = "./FinalAnalysisOutput/MovementModels.RData")
+save(list = c("vel.model", "vel.model.summ", "ta.model"), file = "./FinalAnalysisOutput/MovementModels.RData")

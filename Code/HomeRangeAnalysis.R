@@ -101,8 +101,8 @@ HRModel <- summary(HR.model)
 
 CA <- HR.table %>% filter(Type == "Core")
 
-CA.model <- lmer(Area ~ Status + (1|ID), data = CA)
+CA.model <- lmer(Area ~ StRate + (1|ID), data = CA)
 CAModel <- summary(CA.model)
 
-save(list = c("Out", "Out2"), file = "./FinalAnalysisOutput/HRModelSummary.RData")
+save(list = c("HR.model", "HRModel"), file = "./FinalAnalysisOutput/HRModelSummary.RData")
 

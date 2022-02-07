@@ -13,6 +13,8 @@ library(lubridate)
 library(survival)
 library(AICcmodavg)
 
+set.seed(4432)
+
 #####################Landscape Co-variates##############
 
 PerWoody <- raster("./FinalAnalysisData/PercentWoodyCover.tif")
@@ -23,12 +25,12 @@ StockRast <- raster("./FinalAnalysisData/StockingRaster.tif")
 
 landstack <- raster::stack(PerWoody, PerSand, DistWater, DistRoad, StockRast) #create a raster stack of co-variates
 
-rm(list = c("PerWoody", "PerSand", "DistWater", "DistRoad")) #remove memory consuming rasters
+rm(list = c("PerWoody", "PerSand", "DistWater", "DistRoad", "StockRast")) #remove memory consuming rasters
 
 #####################Step-Selection Prep###############
 
 #read in Deer GPS data
-Deer <- tibble(read.csv("./FinalAnalysisData/DeerGPSData.csv", header = T))
+Deer <- tibble(read.csv("./Output/GPS Data Prep/AllGPSAndStockingDens.csv", header = T))
 
 #Assign the POSTime column as the class POSIXct
 Deer$POSTime <- as.POSIXct(Deer$POSTime, tz = "America/Chicago", format = "%Y-%m-%d %H:%M:%OS")
@@ -61,6 +63,7 @@ for (i in 1:length(Ind)){
     #create a track
     ind.cs.tr <- mk_track(ind.cs, .x = X, .y = Y, .t = POSTime, id = ID, crs = 26914) %>%          track_resample(rate = hours(3), tolerance = minutes(10))
     
+    
     #create burst from which you can create your random steps and extract landscape covariates
     ssf <- ind.cs.tr %>% steps_by_burst() %>% random_steps(n_control = 15) %>% extract_covariates(landstack)
     
@@ -89,7 +92,7 @@ for (i in 1:length(Ind)){
 ssf.all.df <- data.frame(matrix(nrow = 0, ncol = ncol(ssf)))
 names(ssf.all.df) <- names(ssf)
 
-for (m in 1:16){
+for (m in 1:19){
   ssf.all.df <- rbind(ssf.all.df, ssf.all[[m]])
 }
 
@@ -102,15 +105,7 @@ write.csv(ssf.all.df, "./FinalAnalysisOutput/ssfdata.csv", row.names = F)
 
 ssf.all.df <- read.csv("./FinalAnalysisOutput/ssfdata.csv", header = T) #read in ssf data
 
-ssf.all <- st_as_sf(ssf.all.df, coords = c("x2_", "y2_"), crs = 26914, remove = F)
-
-ssf.all$StockingRate <- extract(StockRast, ssf.all)
-
-ssf.all$StockRate <- ifelse(ssf.all$Stocked == "before", 0, ssf.all$StockingRate)
-
-ssf.all.df <- st_drop_geometry(ssf.all)
-
-ssf.all.df <- ssf.all.df[, c(1:21, 23)]
+ssf.all.df$StockingRaster <- ifelse(ssf.all.df$Stocked == "before", 0, ssf.all.df$StockingRaster)
 
 write.csv(ssf.all.df, "./FinalAnalysisOutput/ssfdata.csv", row.names = F)
 
@@ -127,7 +122,7 @@ ssf.all.df$Wood <- scale(ssf.all.df$PercentWoodyCover)
 ssf.all.df$Sand <- scale(ssf.all.df$PercentSand)
 ssf.all.df$Water <- scale(ssf.all.df$Dist2Water)
 ssf.all.df$Road <- scale(ssf.all.df$Dist2Road)
-ssf.all.df$StRate <- scale(ssf.all.df$StockRate)
+ssf.all.df$StRate <- scale(ssf.all.df$StockingRaster)
 
 #Modeled Analysis after Heather Abernathy Hurricane Paper
 SSFModels <- list() #create an empty list to save all the models to
@@ -156,9 +151,9 @@ model.names <- c("global", "null", "minus-int")
 AICSSF <- aictab(cand.set = SSFModels, modnames = model.names, second.ord = F)
 
 #Summary of best fitting model
-summary(SSFModels[[1]])
+GlobalSummary <- summary(SSFModels[[1]])
 
 #Save so you don't have to run code above
-save(list = c("AICSSF", "SSFModels"), file = "./FinalAnalysisOutput/SSFModels.RData")
+save(list = c("AICSSF", "SSFModels", "GlobalSummary"), file = "./FinalAnalysisOutput/SSFModels.RData")
 
 range(ssf.all.df$Wood)
