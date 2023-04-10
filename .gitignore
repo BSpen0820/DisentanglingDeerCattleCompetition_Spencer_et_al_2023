@@ -5,4 +5,10 @@
 Data/
 Output/
 Distance Raster Prep/
-FinalAnalysisOutput/ssfdata.csv
+Plots/
+Junk/
+FinalAnalysisData/
+FinalAnalysisOutput/Junk/
+
+Code/Data Prep
+Code/Dirty Code
