@@ -10,6 +10,7 @@ Junk/
 FinalAnalysisData/
 FinalAnalysisOutput/Junk/
 
-
 Code/Data Prep/
+Code/Data Prep/GPSDataPrep.R
+Code/Data Prep/Spatial Variable Prep.R
 Code/Dirty Code/
