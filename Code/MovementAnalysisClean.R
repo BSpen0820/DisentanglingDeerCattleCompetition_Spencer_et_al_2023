@@ -15,7 +15,7 @@ library(ciTools)
 
 ###################################################
 
-all.df <- read.csv("./FinalAnalysisOutput/movementdata.csv", header = T) #load in movement data
+all.df <- read.csv("./FinalAnalysisOutput/Model Data/movementdata.csv", header = T) #load in movement data
 
 #log transform the velocity data so residuals better fit a normal distribution
 all.df$logVel <- log(all.df$vel) 

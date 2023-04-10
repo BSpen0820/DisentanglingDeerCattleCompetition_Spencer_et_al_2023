@@ -16,7 +16,7 @@ library(car)
 
 #############################SSF Analysis##################
 
-ssf.all.df <- read.csv("./FinalAnalysisOutput/ssfdata.csv", header = T) #read in ssf data
+ssf.all.df <- read.csv("./FinalAnalysisOutput/Model Data/ssfdata.csv", header = T) #read in ssf data
 
 #change case for before and after stocking event to 0 or 1
 ssf.all.df$stcase <- factor(ifelse(ssf.all.df$Stocked == "before", 0, 1))
@@ -58,7 +58,7 @@ SSFModels[[3]] <- survival::clogit(data = ssf.all.df, formula = use ~ Wood +
 #Model names
 model.names <- c("global", "null", "minus-int")
 
-#create data frame to display AIC scores
+#display AIC scores
 aictab(cand.set = SSFModels, modnames = model.names, second.ord = F)
 
 #Summary of best fitting model

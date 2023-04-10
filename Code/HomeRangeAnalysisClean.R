@@ -16,7 +16,7 @@ library(performance)
 ###########################################\
 
 # Read in Data
-HR.table <- read.csv("./FinalAnalysisOutput/HRData.csv", header = T)
+HR.table <- read.csv("./FinalAnalysisOutput/Model Data/HRData.csv", header = T)
 
 # Convert stocking density from AU/ha to AU/km^2
 HR.table$Rate <- HR.table$StDens * 100
