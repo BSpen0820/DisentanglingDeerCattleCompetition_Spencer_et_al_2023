@@ -47,7 +47,7 @@ SSFModels[[1]] <- survival::clogit(data = ssf.all.df, formula = use ~ Wood +
                                     strata(step_id), method = 'approximate', model = T)
 
 #Null Model
-SSFModels[[2]] <- survival::clogit(data = ssf.all.df, formula = use ~ 1 + cluster(id) + 
+SSFModels[[2]] <- survival::clogit(data = ssf.all.df, formula = use ~ 1 + StepL + TurnA + cluster(id) + 
                                   strata(step_id), method = 'approximate', model = T)
 
 #Model without the interaction
